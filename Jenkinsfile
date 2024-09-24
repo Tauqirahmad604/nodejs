@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_CREDENTIALS_ID = 'dockerhub' // Replace with your Docker Hub credentials ID in Jenkins
         DOCKER_IMAGE_NAME = 'tauqir604/jenkins'  // Replace with your Docker Hub username and image name
-        DOCKER_IMAGE_TAG = "${GITHUB_SHA}"                // Use the Git commit SHA as the tag
+        DOCKER_IMAGE_TAG = "${GITHUB_SHA}" // Use the Git commit SHA as the tag
     }
 
     stages {
@@ -19,7 +19,7 @@ pipeline {
             steps {
                 script {
                     // Build the Docker image
-                    docker.build(flaskapp + ":${latest}")
+                    docker.build("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}")
                 }
             }
         }
@@ -30,11 +30,11 @@ pipeline {
                     // Log in to Docker Hub
                     docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
                         // Push the image to Docker Hub
-                        docker.image(flaskapp + ":${latest}").push()
+                        docker.image("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}").push()
                     }
                 }
             }
-        } 
+        }
     }
 
     post {
@@ -46,4 +46,3 @@ pipeline {
         }
     }
 }
-
