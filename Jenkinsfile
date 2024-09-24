@@ -2,9 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_USERNAME = credentials('DOCKER_USERNAME') // Use Jenkins credentials store
-        DOCKER_PASSWORD = credentials('DOCKER_PASSWORD') // Use Jenkins credentials store
-        GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        DOCKER_USERNAME = credentials('DOCKER_USERNAME') // Jenkins credentials ID for Docker username
+        DOCKER_PASSWORD = credentials('DOCKER_PASSWORD') // Jenkins credentials ID for Docker password
     }
 
     stages {
@@ -18,7 +17,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    # Set up Buildx if not already available
+                    # Set up Docker Buildx if not available
                     docker buildx create --use || true
                     docker buildx inspect --bootstrap
                     '''
@@ -29,9 +28,11 @@ pipeline {
         stage('Log in to Docker Hub') {
             steps {
                 script {
-                    sh '''
-                    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-                    '''
+                    withCredentials([string(credentialsId: 'DOCKER_PASSWORD', variable: 'DOCKER_PASSWORD')]) {
+                        sh '''
+                        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                        '''
+                    }
                 }
             }
         }
@@ -39,6 +40,7 @@ pipeline {
         stage('Build, Push, and Load Docker Image') {
             steps {
                 script {
+                    GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     sh """
                     docker buildx build --platform linux/amd64 --push --load \
                     -t ${DOCKER_USERNAME}/my-app:${GIT_COMMIT_SHORT} .
