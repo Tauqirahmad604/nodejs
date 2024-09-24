@@ -1,60 +1,77 @@
 pipeline {
-    agent {
-        docker {
-            image 'docker:latest'
-            args '--privileged' // Use the --privileged flag
-        }
-    }
+    agent any
 
     environment {
-        DOCKER_CREDENTIALS_ID = 'dockerhub' // Replace with your Docker Hub credentials ID in Jenkins
-        DOCKER_IMAGE_NAME = 'tauqir604/jenkins'  // Replace with your Docker Hub username and image name
-        DOCKER_IMAGE_TAG = "${GITHUB_SHA}" // Use the Git commit SHA as the tag
+        DOCKER_USERNAME = credentials('DOCKER_USERNAME') // Use Jenkins credentials store
+        DOCKER_PASSWORD = credentials('DOCKER_PASSWORD') // Use Jenkins credentials store
+        GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Set Docker Socket Permissions') {
+        stage('Set up Docker Buildx') {
             steps {
                 script {
-                    // Change ownership of the Docker socket
-                    sh 'sudo chown jenkins:docker /var/run/docker.sock || true'
+                    sh '''
+                    # Set up Buildx if not already available
+                    docker buildx create --use || true
+                    docker buildx inspect --bootstrap
+                    '''
                 }
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Log in to Docker Hub') {
             steps {
                 script {
-                    sh 'docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .'
+                    sh '''
+                    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                    '''
                 }
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Build, Push, and Load Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
-                        sh 'docker push ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}'
-                    }
+                    sh """
+                    docker buildx build --platform linux/amd64 --push --load \
+                    -t ${DOCKER_USERNAME}/my-app:${GIT_COMMIT_SHORT} .
+
+                    docker tag ${DOCKER_USERNAME}/my-app:${GIT_COMMIT_SHORT} \
+                    ${DOCKER_USERNAME}/my-app:latest
+                    """
+                }
+            }
+        }
+
+        stage('Push Latest Tag') {
+            steps {
+                script {
+                    sh """
+                    docker push ${DOCKER_USERNAME}/my-app:latest
+                    """
                 }
             }
         }
     }
 
     post {
+        always {
+            script {
+                sh 'docker logout'
+            }
+        }
         success {
-            echo "Docker image pushed successfully: ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+            echo 'Docker image build, push, and tag succeeded.'
         }
         failure {
-            echo "Pipeline failed!"
+            echo 'Docker image build, push, or tag failed.'
         }
     }
 }
-
-
