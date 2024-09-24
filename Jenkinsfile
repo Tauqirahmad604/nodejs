@@ -1,15 +1,17 @@
 pipeline {
     agent {
         docker {
-          image 'docker:latest'
-          args '--privileged'
+            image 'docker:latest'
+            args '--privileged'
+        }
+    }
 
     environment {
         DOCKER_CREDENTIALS_ID = 'dockerhub' // Replace with your Docker Hub credentials ID in Jenkins
         DOCKER_IMAGE_NAME = 'tauqir604/jenkins'  // Replace with your Docker Hub username and image name
         DOCKER_IMAGE_TAG = "${GITHUB_SHA}" // Use the Git commit SHA as the tag
     }
-        }
+
     stages {
         stage('Checkout') {
             steps {
@@ -49,3 +51,4 @@ pipeline {
         }
     }
 }
+
