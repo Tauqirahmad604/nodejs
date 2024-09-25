@@ -20,7 +20,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1  # Adjust if needed
+          aws-region: us-east-1
 
       # Set up Docker Buildx
       - name: Set up Docker Buildx
@@ -36,18 +36,12 @@ jobs:
         run: |
           IMAGE_URI=095218681429.dkr.ecr.us-east-1.amazonaws.com/test/first
           docker buildx build --platform linux/amd64 --push -t $IMAGE_URI:${{ github.sha }} .
-          docker tag $IMAGE_URI:${{ github.sha }} $IMAGE_URI:latest
-
-      # Optional: Push the 'latest' tag
-      - name: Push 'latest' Docker image
-        run: |
-          IMAGE_URI=095218681429.dkr.ecr.us-east-1.amazonaws.com/test/first
-          docker push $IMAGE_URI:latest
 
       # Create or update the ECS task definition
       - name: Register ECS Task Definition
         id: register-task-def
         run: |
+          IMAGE_URI=095218681429.dkr.ecr.us-east-1.amazonaws.com/test/first
           TASK_DEFINITION=$(jq -n \
             --arg image "$IMAGE_URI:latest" \
             '{
@@ -62,8 +56,8 @@ jobs:
                   essential: true,
                   portMappings: [
                     {
-                      containerPort: 8080,
-                      hostPort: 8080,
+                      containerPort: 3001,
+                      hostPort: 3001,
                       protocol: "tcp"
                     }
                   ]
@@ -76,4 +70,4 @@ jobs:
       # Update the ECS service to use the new task definition
       - name: Update ECS Service
         run: |
-          aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment --task-definition my-task
+          aws ecs update-service --cluster Dev --service my-service --force-new-deployment --task-definition my-task
