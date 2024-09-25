@@ -1,4 +1,4 @@
-name: Build and Push Docker Image to Docker Hub
+name: Build and Push Docker Image to ECR
 
 on:
   push:
@@ -14,26 +14,33 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Configure AWS credentials for ECR authentication
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1  # Update this to your desired AWS region
+
       # Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Log in to Docker Hub
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      # Build, push, and load the Docker image
-      - name: Build, push, and load Docker image
+      # Log in to Amazon ECR
+      - name: Log in to Amazon ECR
         run: |
-          docker buildx build --platform linux/amd64 --push --load -t ${{ secrets.DOCKER_USERNAME }}/my-app:${{ github.sha }} .
-          docker tag ${{ secrets.DOCKER_USERNAME }}/my-app:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/my-app:latest
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+      # Build and push the Docker image to ECR
+      - name: Build and push Docker image
+        run: |
+          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/test/first
+          docker buildx build --platform linux/amd64 --push --load -t $IMAGE_URI:${{ github.sha }} .
+          docker tag $IMAGE_URI:${{ github.sha }} $IMAGE_URI:latest
 
       # Optional: Push the 'latest' tag
       - name: Push 'latest' Docker image
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/my-app:latest
-
+          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/test/first
+          docker push $IMAGE_URI:latest
 
