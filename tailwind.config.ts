@@ -153,9 +153,11 @@ export default <Partial<Config>>{
         'warning': {
           '100': '#FFF9EE',
           '500': '#FFDDAA',
-          '900': '#FFBA55',
+          '900': '#FFBA56',
         },
       },
     },
   },
 };
+
+
