@@ -27,8 +27,8 @@ WORKDIR /app
 COPY --from=builder /app ./  
 
 # Install only production dependencies
-RUN npm install --production
-
+RUN npm install --production 
+ 
 # Expose the port the app runs on
 EXPOSE 3000
 
