@@ -16,7 +16,7 @@ export default <Partial<Config>>{
         rajdhani: ['Rajdhani', ...defaultTheme.fontFamily.sans],
       },
       spacing: {
-        '4.5': '1.125rem' /* 18px */,
+        '4.3': '1.125rem' /* 18px */,
         '5.5': '1.375rem' /* 22px */,
         '6.5': '1.625rem'  /* 26px */,
         '7.5': '1.875rem' /* 30px */,
