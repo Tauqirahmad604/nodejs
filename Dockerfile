@@ -24,7 +24,7 @@ FROM node:18
 WORKDIR /app
 
 # Copy only the necessary files from the builder stage
-COPY --from=builder /app ./ 
+COPY --from=builder /app ./  
 
 # Install only production dependencies
 RUN npm install --production
